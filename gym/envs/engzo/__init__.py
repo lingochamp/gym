@@ -1,1 +1,1 @@
-from gym.envs.engzo.learning_env import EngzoLearningEnv
+from gym.envs.engzo.adaptive_learning_env import AdaptiveLearningEnv
