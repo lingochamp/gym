@@ -83,6 +83,12 @@ add_group(
     description='Environments to test various AI safety properties.'
 )
 
+add_group(
+    id='engzo',
+    name='Engzo',
+    description='Engzo Environments to learn from activity'
+)
+
 # classic control
 
 add_task(
@@ -1412,6 +1418,16 @@ The robot model was originally created by Tassa et al. [Tassa12]_.
 .. [Tassa12] Y Tassa, T Erez, E Todorov, "Synthesis and Stabilization of Complex Behaviors through Online Trajectory Optimization".
 """,
     deprecated=True,
+)
+
+## Engzo
+add_task(
+    id='EngzoAdaptiveLearning-v0',
+    group='engzo',
+    summary='TODO:',
+    description='TODO:',
+    background='TODO: ',
+    contributor='lingochamp'
 )
 
 registry.finalize()

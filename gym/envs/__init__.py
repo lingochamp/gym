@@ -470,3 +470,10 @@ register(
     entry_point='gym.envs.safety:OffSwitchCartpoleProbEnv',
     timestep_limit=200,
 )
+
+# Engzo
+#-----------------------
+register(
+    id='EngzoAdaptiveLearning-v0',
+    entry_point='gym.envs.engzo:AdaptiveLearningEnv'
+)
