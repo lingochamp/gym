@@ -36,7 +36,8 @@ class Knowledge(BaseModel):
         return result
 
     def preliminaries(self):
-        return reduce(list.__add__, [grp.knowledges for grp in self.group.preliminaries])
+        if self.group.preliminaries is not None:
+            return reduce(list.__add__, [grp.knowledges for grp in self.group.preliminaries])
 
 class Activity(BaseModel):
     """
