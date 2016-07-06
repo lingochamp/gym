@@ -1,5 +1,7 @@
 import random
 import numpy as np
+
+from gym import Space
 from gym.spaces import Discrete
 
 class BaseModel(object):
@@ -42,18 +44,19 @@ class Knowledge(BaseModel):
         else:
             return []
 
-class Activity(BaseModel):
+class Activity(Space):
     """
-    Activity may contain questions and answers,
-    it attached one or more knowledges
+    A Activity for ITS,
+    It's a 2-D array of knowledges
     """
-    def __init__(self, kg):
-        self.knowledges = [kg]
+    def __init__(self, spaces):
+        self.spaces = spaces
 
-    def append_knowledge(self, kg):
-        if kg not in self.knowledges:
-            return self.knowledges.append(kg)
+    def sample(self):
+        return self.spaces[np.random.randint(len(self.spaces))]
 
+    def contains(self, x):
+        return x in self.spaces
 
 def _generate_groups(level, kg_max=200, group_kg_max=5):
     remain = kg_max
@@ -65,15 +68,18 @@ def _generate_groups(level, kg_max=200, group_kg_max=5):
             remain -= n
     return groups
 
-def generate_activites(ratio, kg_max=200, group_kg_max=5.):
-    noise_sd = 0.05
+def generate_knowledges(kg_max=200, group_kg_max=5.):
     d = np.random.multinomial(kg_max, [5/10., 3.5/10., 1.5/10.])
     groups = reduce(list.__add__, [_generate_groups(i+1, x, group_kg_max) for i, x in enumerate(d)])
     for group in groups:
         if group.level > 1:
             gs = [g for g in groups if g.level == group.level - 1]
             group.preliminaries = random.sample(gs, Discrete(len(gs)).sample())
-    ks = reduce(list.__add__, [x.knowledges for x in groups])
+    return reduce(list.__add__, [x.knowledges for x in groups])
+
+
+def generate_activities(ks, ratio):
+    noise_sd = 0.05
     ## generate activities
     activities = []
     for index, k in enumerate(ks):

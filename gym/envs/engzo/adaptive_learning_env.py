@@ -6,7 +6,9 @@ from gym import Env
 from gym.spaces import Discrete, Box
 from gym.utils import colorize, seeding
 # from gym.envs.toy_text import discrete
+
 from gym.envs.engzo import models
+from gym.envs.engzo.student_simulator import StudentSimulator
 
 from six import StringIO
 
@@ -18,24 +20,22 @@ class AdaptiveLearningEnv(gym.Env):
     ratio = 5
 
     def __init__(self):
-        self.action_space = models.generate_activites(self.ratio)
-        # self.observation_space = Box()
+        self.knowledges = models.generate_knowledges()
+        self.action_space = models.Activity(models.generate_activities(self.knowledges, self.ratio))
+        self.observation_space = Box(0, 1, len(self.knowledges))
         self.reward_range = (0, 1)
+        self.simulator = StudentSimulator(self.action_space)
+        self.ob = None
         self._seed()
         self._reset()
 
-
     def _step(self, action):
         assert self.action_space.contains(action)
-        raise NotImplemented
-        # return self._get_obs(), reward, done, {}
-
-    def _get_obs(self):
-        raise NotImplemented
+        ob, reward, done = self.simulator.progress(self.ob, action)
+        return ob, reward, done, {}
 
     def _reset(self):
-        return self._get_obs()
-
+        self.ob = Box(0.05, 0.1, len(self.knowledges)).sample()
 
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
