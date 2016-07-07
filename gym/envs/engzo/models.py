@@ -52,11 +52,17 @@ class Activity(BaseModel):
     def __init__(self, activity):
         self.activity = activity
 
-    def knowledge(self, ks):
+    def knowledges(self, ks):
+        """
+        Return all knowledges of activity,
+        The first is main knowledge
+        """
         m = max(self.activity)
-        index = [i for i, j in enumerate(a) if j == m][0]
-        return ks[index]
-
+        ary = []
+        indexes = sorted([(j, i) for i, j in enumerate(self.activity) if j != 0])
+        for (x, i) in indexes:
+            ary.append(ks[i])
+        return ary
 
 class ActivitySpaceWrapper(Space):
     """
@@ -102,7 +108,6 @@ def generate_knowledges(kg_max=200, group_kg_max=5.):
     return reduce(list.__add__, [x.knowledges for x in groups])
 
 def generate_activities(ks, ratio):
-    noise_sd = 0.05
     ## generate activities
     activities = []
     for index, k in enumerate(ks):
