@@ -151,8 +151,8 @@ class Geom(object):
         raise NotImplementedError
     def add_attr(self, attr):
         self.attrs.append(attr)
-    def set_color(self, r, g, b):
-        self._color.vec4 = (r, g, b, 1)
+    def set_color(self, r, g, b, a=1):
+        self._color.vec4 = (r, g, b, a)
 
 class Attr(object):
     def enable(self):
