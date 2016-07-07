@@ -52,7 +52,7 @@ class AdaptiveLearningEnv(gym.Env):
         return ob, reward, done, {}
 
     def _reset(self):
-        self.ob = Box(0.05, 0.1, len(self.knowledges)).sample()
+        self.ob = Box(0.1, 0.1, len(self.knowledges)).sample()
         return self.ob
 
     def _seed(self, seed=None):
