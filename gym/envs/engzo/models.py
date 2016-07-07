@@ -10,8 +10,8 @@ class BaseModel(object):
     """
     BaseModel for engzo Adaptive Learning Env
     """
-    def __init__(self):
-        pass
+    def __init__(self, _id=None):
+        self._id = _id
 
 class KnowledgeGroup(BaseModel):
     def __init__(self, level, kg_num, preliminaries=None):
@@ -51,19 +51,18 @@ class Activity(BaseModel):
     Activity is a wrapper class for action vector
     """
 
-    def __init__(self, activity):
+    def __init__(self, activity, ks):
         self.activity = activity
+        self.knowledges = self._knowledges(ks)
 
-    def knowledges(self, ks):
+    def _knowledges(self, ks):
         """
         Return all knowledges of activity,
         The first is main knowledge
         """
         m = max(self.activity)
         ary = []
-        indexes = sorted([(j, i) for i, j in enumerate(self.activity) if j != 0])
-        for (x, i) in indexes:
-            ary.append(ks[i])
+        for j in [i for (i,x) in enumerate(self.activity) if x != 0]: ary.append(ks[j])
         return ary
 
 class ActivitySpaceWrapper(Space):
@@ -107,7 +106,9 @@ def _generate_knowledges(kg_max=200, group_kg_max=5.):
         if group.level > 1:
             gs = [g for g in groups if g.level == group.level - 1]
             group.preliminaries = random.sample(gs, Discrete(len(gs)).sample())
-    return reduce(list.__add__, [x.knowledges for x in groups])
+    ks = reduce(list.__add__, [x.knowledges for x in groups])
+    for i, x in enumerate(ks): x._id = i
+    return ks
 
 def _generate_activities(ks, ratio):
     ## generate activities

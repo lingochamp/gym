@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 class AdaptiveLearningEnv(gym.Env):
 
     metadata = { 'render.modes': ['human', 'ansi'] }
-    ratio = 5
 
     def __init__(self, filename='activities.pkl'):
         self.filename = filename
@@ -47,7 +46,7 @@ class AdaptiveLearningEnv(gym.Env):
 
     def _step(self, action):
         assert self.action_space.contains(action)
-        a = Activity(self.activities[action])
+        a = Activity(self.activities[action], self.knowledges)
         ob, reward, done = self.simulator.progress(self.ob, a)
         self.ob = ob
         return ob, reward, done, {}
