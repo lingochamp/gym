@@ -78,7 +78,7 @@ class Activity(BaseModel):
         ks = set()
         for k in self.knowledges:
             ks.update(k.preliminaries())
-        return np.array([k._id] for k in ks)
+        return [k._id for k in ks]
 
 
 class ActivitySpaceWrapper(Space):

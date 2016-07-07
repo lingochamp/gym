@@ -15,7 +15,7 @@ COMPLETE_TYPE_MASTERY_AVG = "mastery.average.complete"
 class StudentSimulator:
     def __init__(
             self,
-            state_transfer_type=STATE_TRANSFER_TYPE_IGNORE_PRE,
+            state_transfer_type=STATE_TRANSFER_TYPE_PRE_UPPER_BOUNDED,
             reward_type=REWARD_TYPE_MASTERY_DIFF,
             complete_type=COMPLETE_TYPE_MASTERY_AVG
     ):
