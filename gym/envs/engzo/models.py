@@ -39,11 +39,7 @@ class Knowledge(BaseModel):
         return self.group.level
 
     def sibling(self):
-        result = []
-        for x in self.group.knowledges:
-            if x is not self:
-                result.append(x)
-        return result
+        return [x for x in self.group.knowledges if x is not self]
 
     def preliminaries(self):
         if self.group.preliminaries is not None:
@@ -64,10 +60,18 @@ class Activity(BaseModel):
             ks (list of :obj:`Knowledge`): All knowledge.
         """
         self.psi = psi
+        self.knowledge_indexes = np.nonzero(psi)
+        self.related_knowledge_indexes = self.__related_knowledge_indexes()
         self.knowledges = self.__knowledges(ks)
 
     def __knowledges(self, ks):
-        return [ks[i] for i in np.nonzero(self.psi)[0]]
+        return [ks[i] for i in self.knowledge_indexes[0]]
+
+    def __related_knowledge_indexes(self):
+        ks = set()
+        for k in self.knowledges:
+            ks.update(k.sibling())
+        return np.array([k._id for k in ks])
 
 
 class ActivitySpaceWrapper(Space):
@@ -126,6 +130,7 @@ def _generate_activities(ks, ratio):
             act = np.zeros(len(ks))
             act[index] += np.random.uniform(0.5, 1.)
             if act[index] < 0: act[index] = 0.5
+            # TODO fix knowledge pool
             siblings = k.sibling()
             np.random.shuffle(siblings)
             for s in siblings[0:2]:

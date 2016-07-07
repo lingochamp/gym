@@ -35,7 +35,7 @@ class AdaptiveLearningEnv(gym.Env):
         self._load_activities()
         self.action_space = Discrete(len(self.activities))
         self.observation_space = Box(0, 1, len(self.knowledges)) #
-        self.simulator = StudentSimulator(self.action_space)
+        self.simulator = StudentSimulator()
 
     def _load_activities(self):
         data_file = os.path.join(self.assets_dir, 'assets/%s' % self.filename)
