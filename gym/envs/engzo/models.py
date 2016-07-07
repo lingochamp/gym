@@ -107,7 +107,7 @@ def generate_activities(ks, ratio):
     activities = []
     for index, k in enumerate(ks):
         for i in range(ratio):
-            act = np.random.normal(0, noise_sd, len(ks))
+            act = np.zeros(len(ks))
             act[index] += np.random.uniform(0.5, 1.)
             if act[index] < 0: act[index] = 0.5
             siblings = k.sibling()

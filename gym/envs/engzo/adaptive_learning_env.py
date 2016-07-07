@@ -26,11 +26,17 @@ class AdaptiveLearningEnv(gym.Env):
         self.reward_range = (0, 1)
         self.simulator = StudentSimulator(self.action_space)
         self.viewer = None
+        self.ob = None
         self._seed()
         self._reset()
 
         # Just need to initialize the relevant attributes
         self._configure()
+
+
+    def set_data(self, ks=None, action_space=None):
+        if ks is not None: self.knowledges = ks
+        if action_space is not None: self.action_space = action_space
 
     def _configure(self, display=None):
         self.display = display
@@ -39,10 +45,12 @@ class AdaptiveLearningEnv(gym.Env):
         assert self.action_space.contains(action)
         a = models.Activity(action)
         ob, reward, done = self.simulator.progress(a.knowledge, a)
+        self.ob = ob
         return ob, reward, done, {}
 
     def _reset(self):
-        return Box(0.05, 0.1, len(self.knowledges)).sample()
+        self.ob = Box(0.05, 0.1, len(self.knowledges)).sample()
+        return self.ob
 
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -50,7 +58,7 @@ class AdaptiveLearningEnv(gym.Env):
 
     def _render(self, mode='human', close=False):
         if close:
-            if self.viewwr is not None:
+            if self.viewer is not None:
                 self.viewer.close()
                 self.viewer = None
             return
