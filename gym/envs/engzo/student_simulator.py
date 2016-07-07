@@ -9,12 +9,19 @@ TAU_TYPE_PRE_FACTORED = "preliminary.factored.tau"
 TAU_TYPE_IGNORE_PRE = "ignore.preliminary.tau"
 REWARD_TYPE_TAU = "tau.reward"
 REWARD_TYPE_OVERALL_PERF = "overall.performance.reward"
+COMPLETE_TYPE_MASTERY_AVG = "mastery.average.complete"
 
 
 class StudentSimulator:
-    def __init__(self, tau_type=TAU_TYPE_IGNORE_PRE, reward_type=REWARD_TYPE_TAU):
+    def __init__(
+            self,
+            tau_type=TAU_TYPE_IGNORE_PRE,
+            reward_type=REWARD_TYPE_TAU,
+            complete_type=COMPLETE_TYPE_MASTERY_AVG
+    ):
         self.tau_type = tau_type
         self.reward_type = REWARD_TYPE_TAU
+        self.complete_type = COMPLETE_TYPE_MASTERY_AVG
 
     def progress(self, state, action):
         """
@@ -44,9 +51,18 @@ class StudentSimulator:
         else:
             # TODO
             raise NotImplementedError
+        new_state = state + tau
 
         # Reward
         if self.reward_type == REWARD_TYPE_TAU:
             reward = np.sum(tau)
+        else:
+            raise NotImplementedError
 
-        return state + tau, reward, complete
+        # Complete?
+        if self.complete_type == COMPLETE_TYPE_MASTERY_AVG:
+            complete = np.average(new_state) > .8
+        else:
+            raise NotImplementedError
+
+        return new_state, reward, complete
