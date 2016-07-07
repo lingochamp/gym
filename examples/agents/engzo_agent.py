@@ -28,7 +28,7 @@ if __name__ == '__main__':
     agent = EngzoAgent(env.action_space)
 
     episode_count = 100
-    max_steps = 2000
+    max_steps = 1000
     reward = 0
     done = False
 
@@ -39,6 +39,7 @@ if __name__ == '__main__':
             env.render()
             action = agent.act(ob, reward, done)
             ob, reward, done, _ = env.step(action)
+            print j, sum(ob)
             if done:
                 break
             # Note there's no env.render() here. But the environment still can open window and

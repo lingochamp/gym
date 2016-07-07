@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 
 STATE_TRANSFER_TYPE_PRE_UPPER_BOUNDED = "preliminary.upper.bounded.state.transfer"
 STATE_TRANSFER_TYPE_PRE_FACTORED = "preliminary.factored.state.transfer"
+STATE_TRANSFER_TYPE_PRE_FACTORED_AND_BOUNDED = "preliminary.factored_bounded.state.transfer"
 STATE_TRANSFER_TYPE_IGNORE_PRE = "ignore.preliminary.state.transfer"
 REWARD_TYPE_MASTERY_DIFF = "mastery.diff.reward"
 REWARD_TYPE_OVERALL_PERF_DIFF = "overall.performance.diff.reward"
@@ -15,7 +16,7 @@ COMPLETE_TYPE_MASTERY_AVG = "mastery.average.complete"
 class StudentSimulator:
     def __init__(
             self,
-            state_transfer_type=STATE_TRANSFER_TYPE_PRE_UPPER_BOUNDED,
+            state_transfer_type=STATE_TRANSFER_TYPE_PRE_FACTORED_AND_BOUNDED,
             reward_type=REWARD_TYPE_MASTERY_DIFF,
             complete_type=COMPLETE_TYPE_MASTERY_AVG
     ):
@@ -52,6 +53,12 @@ class StudentSimulator:
         elif self.state_transfer_type == STATE_TRANSFER_TYPE_PRE_UPPER_BOUNDED:
             upper_bound = np.average(state[action.preliminary_knowledge_indexes])
             new_state = np.maximum((state + tau).clip(max=upper_bound), state)
+        elif self.state_transfer_type == STATE_TRANSFER_TYPE_PRE_FACTORED_AND_BOUNDED:
+            upper_bound = np.average(state[action.preliminary_knowledge_indexes])
+            pre_mastery = np.average(state[action.preliminary_knowledge_indexes])
+            if not np.isnan(pre_mastery):
+                tau *= pre_mastery
+            new_state = np.maximum((state + tau).clip(max=pre_mastery), state)
         else:
             # TODO TAU_TYPE_PRE_FACTORED
             raise NotImplementedError
