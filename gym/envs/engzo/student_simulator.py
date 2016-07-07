@@ -20,8 +20,8 @@ class StudentSimulator:
             complete_type=COMPLETE_TYPE_MASTERY_AVG
     ):
         self.state_transfer_type = state_transfer_type
-        self.reward_type = REWARD_TYPE_MASTERY_DIFF
-        self.complete_type = COMPLETE_TYPE_MASTERY_AVG
+        self.reward_type = reward_type
+        self.complete_type = complete_type
 
     def progress(self, state, action):
         """
