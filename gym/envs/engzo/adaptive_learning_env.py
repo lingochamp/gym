@@ -72,15 +72,16 @@ class AdaptiveLearningEnv(gym.Env):
         init_alpha = 0.1
         margin = radius * 2.5
         max_per_line = (screen_width - margin * 2) / margin
+        colors = np.array([[78,191,126], [254,178,45], [175,101,194]])/255.
+        ids = []
 
         if self.viewer is None:
             from gym.envs.classic_control import rendering
             self.viewer = rendering.Viewer(screen_width, screen_height)
 
-            colors = np.array([[78,191,126], [254,178,45], [175,101,194]])/255.
-
             for (i, x) in enumerate(sorted(self.knowledges, key=attrgetter('level', 'group'), reverse=True)):
                 h, w = divmod(i, max_per_line)
+                ids.append(x._id)
                 w = screen_width - 20  - w * (margin + 10)
                 h = screen_height - 20 - h * (margin + 10)
                 t = self.viewer.draw_circle(radius)
@@ -89,5 +90,10 @@ class AdaptiveLearningEnv(gym.Env):
                 t.set_color(r, g, b, init_alpha)
                 self.viewer.add_geom(t)
 
-        #TODO: Update state here
-        return self.viewer.render()
+        for i, x in enumerate(self.ob):
+            if len(ids) != 0:
+                t = self.viewer.geoms[ids.index(i)]
+                k = self.knowledges[i]
+                r, g, b = colors[k.level() - 1]
+                t.set_color(r, g, b, x)
+        return self.viewer.render(return_rgb_array = mode=='rgb_array')
