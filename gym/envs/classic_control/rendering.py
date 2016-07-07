@@ -55,7 +55,9 @@ class Viewer(object):
         self.transform = Transform()
 
         glEnable(GL_BLEND)
+        glEnable (GL_LINE_SMOOTH)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST)
 
     def close(self):
         self.window.close()
