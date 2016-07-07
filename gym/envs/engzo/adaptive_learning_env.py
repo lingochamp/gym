@@ -1,6 +1,8 @@
-import numpy as np
 import gym
 import logging
+import os
+import pickle
+import numpy as np
 
 from gym import Env
 from gym.spaces import Discrete, Box
@@ -19,32 +21,35 @@ class AdaptiveLearningEnv(gym.Env):
     metadata = { 'render.modes': ['human', 'ansi'] }
     ratio = 5
 
-    def __init__(self):
-        self.knowledges = models.generate_knowledges()
-        self.action_space = models.ActivitySpaceWrapper(models.generate_activities(self.knowledges, self.ratio))
-        self.observation_space = Box(0, 1, len(self.knowledges))
+    def __init__(self, filename='activities.pkl'):
+        self.filename = filename
+        self.assets_dir = os.path.dirname(os.path.abspath(__file__))
         self.reward_range = (0, 1)
-        self.simulator = StudentSimulator(self.action_space)
         self.viewer = None
         self.ob = None
         self._seed()
         self._reset()
-
-        # Just need to initialize the relevant attributes
         self._configure()
 
 
-    def set_data(self, ks=None, action_space=None):
-        if ks is not None: self.knowledges = ks
-        if action_space is not None: self.action_space = action_space
-
     def _configure(self, display=None):
         self.display = display
+        self._load_activities()
+        self.action_space = Discrete(len(self.activities))
+        self.observation_space = Box(0, 1, len(self.knowledges)) #
+        self.simulator = StudentSimulator(self.action_space)
+
+    def _load_activities(self):
+        data_file = os.path.join(self.assets_dir, 'assets/%s' % self.filename)
+        pkl_file = open(data_file, 'rb')
+        self.knowledges = pickle.load(pkl_file)
+        self.activities = pickle.load(pkl_file)
+        pkl_file.close()
 
     def _step(self, action):
         assert self.action_space.contains(action)
-        a = models.Activity(action)
-        ob, reward, done = self.simulator.progress(a.knowledge, a)
+        a = models.Activity(self.activities[action])
+        ob, reward, done = self.simulator.progress(self.ob, a)
         self.ob = ob
         return ob, reward, done, {}
 

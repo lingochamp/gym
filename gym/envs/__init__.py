@@ -475,5 +475,6 @@ register(
 #-----------------------
 register(
     id='EngzoAdaptiveLearning-v0',
-    entry_point='gym.envs.engzo:AdaptiveLearningEnv'
+    entry_point='gym.envs.engzo:AdaptiveLearningEnv',
+    kwargs= {'filename' : 'activities.pkl'}
 )
