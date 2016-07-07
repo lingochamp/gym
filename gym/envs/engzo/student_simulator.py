@@ -41,9 +41,9 @@ class StudentSimulator:
         new_state, reward, complete = None, 0., False
 
         # Predict performance
-        alpha = (action.psi - state).clim(min=0.)
+        alpha = (action.psi - state).clip(min=0.)
         phi = state[action.related_knowledge_indexes]
-        y = max(1 - alpha.norm / phi.norm, 0)
+        y = max(1 - np.linalg.norm(alpha) / np.linalg.norm(phi), 0)
 
         # State(knowledge mastery) update
         tau = y * alpha

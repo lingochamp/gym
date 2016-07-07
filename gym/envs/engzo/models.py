@@ -42,7 +42,7 @@ class Knowledge(BaseModel):
         return [x for x in self.group.knowledges if x is not self]
 
     def preliminaries(self):
-        if self.group.preliminaries is not None:
+        if self.group.preliminaries:
             return reduce(list.__add__, [grp.knowledges for grp in self.group.preliminaries])
         else:
             return []
@@ -77,7 +77,7 @@ class Activity(BaseModel):
     def __preliminary_knowledge_indexes(self):
         ks = set()
         for k in self.knowledges:
-            ks.update(k.group.preliminaries())
+            ks.update(k.preliminaries())
         return np.array([k._id] for k in ks)
 
 
