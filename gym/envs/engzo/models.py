@@ -6,23 +6,28 @@ import numpy as np
 from gym import Space
 from gym.spaces import Discrete
 
+
 class BaseModel(object):
     """
     BaseModel for engzo Adaptive Learning Env
     """
+
     def __init__(self, _id=None):
         self._id = _id
 
+
 class KnowledgeGroup(BaseModel):
     def __init__(self, level, kg_num, preliminaries=None):
-        self.knowledges = [ Knowledge(self) for i in range(kg_num) ]
+        self.knowledges = [Knowledge(self) for i in range(kg_num)]
         self.preliminaries = preliminaries
         self.level = level
+
 
 class Knowledge(BaseModel):
     """
     Knowledge is an unique and specific entry to learn
     """
+
     def __init__(self, group=None):
         self.group = group
 
@@ -46,30 +51,31 @@ class Knowledge(BaseModel):
         else:
             return []
 
+
 class Activity(BaseModel):
     """
     Activity is a wrapper class for action vector
     """
 
-    def __init__(self, activity, ks):
-        self.activity = activity
-        self.knowledges = self._knowledges(ks)
+    def __init__(self, psi, ks):
+        """
+        Args:
+            psi (:obj:`ndarray`): Requirement of each knowledge.
+            ks (list of :obj:`Knowledge`): All knowledge.
+        """
+        self.psi = psi
+        self.knowledges = self.__knowledges(ks)
 
-    def _knowledges(self, ks):
-        """
-        Return all knowledges of activity,
-        The first is main knowledge
-        """
-        m = max(self.activity)
-        ary = []
-        for j in [i for (i,x) in enumerate(self.activity) if x != 0]: ary.append(ks[j])
-        return ary
+    def __knowledges(self, ks):
+        return [ks[i] for i in np.nonzero(self.psi)[0]]
+
 
 class ActivitySpaceWrapper(Space):
     """
     A ActivitySpaceWrapper for ITS,
     It's a 2-D array of knowledges
     """
+
     def __init__(self, spaces):
         self.spaces = spaces
 
@@ -99,9 +105,10 @@ def _generate_groups(level, kg_max=200, group_kg_max=5):
             remain -= n
     return groups
 
+
 def _generate_knowledges(kg_max=200, group_kg_max=5.):
-    d = np.random.multinomial(kg_max, [5/10., 3.5/10., 1.5/10.])
-    groups = reduce(list.__add__, [_generate_groups(i+1, x, group_kg_max) for i, x in enumerate(d)])
+    d = np.random.multinomial(kg_max, [5 / 10., 3.5 / 10., 1.5 / 10.])
+    groups = reduce(list.__add__, [_generate_groups(i + 1, x, group_kg_max) for i, x in enumerate(d)])
     for group in groups:
         if group.level > 1:
             gs = [g for g in groups if g.level == group.level - 1]
@@ -109,6 +116,7 @@ def _generate_knowledges(kg_max=200, group_kg_max=5.):
     ks = reduce(list.__add__, [x.knowledges for x in groups])
     for i, x in enumerate(ks): x._id = i
     return ks
+
 
 def _generate_activities(ks, ratio):
     ## generate activities
@@ -127,6 +135,7 @@ def _generate_activities(ks, ratio):
             activities.append(act)
     return np.asarray(activities)
 
+
 def main():
     data_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets/activities.pkl')
     output = open(data_file, 'wb')
@@ -136,5 +145,6 @@ def main():
     pickle.dump(acts, output)
     output.close()
 
+
 if __name__ == '__main__':
-	main()
+    main()
