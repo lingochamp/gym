@@ -61,17 +61,24 @@ class Activity(BaseModel):
         """
         self.psi = psi
         self.knowledge_indexes = np.nonzero(psi)
+        self.knowledges = [ks[i] for i in self.knowledge_indexes[0]]
         self.related_knowledge_indexes = self.__related_knowledge_indexes()
-        self.knowledges = self.__knowledges(ks)
-
-    def __knowledges(self, ks):
-        return [ks[i] for i in self.knowledge_indexes[0]]
+        self.preliminary_knowledge_indexes = self.__preliminary_knowledge_indexes()
 
     def __related_knowledge_indexes(self):
-        ks = set()
+        """
+        Returns: Index of self + knowledges in same group
+        """
+        ks = set(self.knowledges)
         for k in self.knowledges:
             ks.update(k.sibling())
         return np.array([k._id for k in ks])
+
+    def __preliminary_knowledge_indexes(self):
+        ks = set()
+        for k in self.knowledges:
+            ks.update(k.group.preliminaries())
+        return np.array([k._id] for k in ks)
 
 
 class ActivitySpaceWrapper(Space):

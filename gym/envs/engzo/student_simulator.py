@@ -4,23 +4,23 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-TAU_TYPE_PRE_UPPER_BOUNDED = "preliminary.upper.bounded.tau"
-TAU_TYPE_PRE_FACTORED = "preliminary.factored.tau"
-TAU_TYPE_IGNORE_PRE = "ignore.preliminary.tau"
-REWARD_TYPE_TAU = "tau.reward"
-REWARD_TYPE_OVERALL_PERF = "overall.performance.reward"
+STATE_TRANSFER_TYPE_PRE_UPPER_BOUNDED = "preliminary.upper.bounded.state.transfer"
+STATE_TRANSFER_TYPE_PRE_FACTORED = "preliminary.factored.state.transfer"
+STATE_TRANSFER_TYPE_IGNORE_PRE = "ignore.preliminary.state.transfer"
+REWARD_TYPE_MASTERY_DIFF = "mastery.diff.reward"
+REWARD_TYPE_OVERALL_PERF_DIFF = "overall.performance.diff.reward"
 COMPLETE_TYPE_MASTERY_AVG = "mastery.average.complete"
 
 
 class StudentSimulator:
     def __init__(
             self,
-            tau_type=TAU_TYPE_IGNORE_PRE,
-            reward_type=REWARD_TYPE_TAU,
+            state_transfer_type=STATE_TRANSFER_TYPE_IGNORE_PRE,
+            reward_type=REWARD_TYPE_MASTERY_DIFF,
             complete_type=COMPLETE_TYPE_MASTERY_AVG
     ):
-        self.tau_type = tau_type
-        self.reward_type = REWARD_TYPE_TAU
+        self.state_transfer_type = state_transfer_type
+        self.reward_type = REWARD_TYPE_MASTERY_DIFF
         self.complete_type = COMPLETE_TYPE_MASTERY_AVG
 
     def progress(self, state, action):
@@ -38,7 +38,7 @@ class StudentSimulator:
         """
         assert isinstance(action, Activity)
         assert state.shape == action.psi.shape
-        tau, reward, complete = np.zeros(state.shape), 0., False
+        new_state, reward, complete = None, 0., False
 
         # Predict performance
         alpha = (action.psi - state).clim(min=0.)
@@ -46,16 +46,19 @@ class StudentSimulator:
         y = max(1 - alpha.norm / phi.norm, 0)
 
         # State(knowledge mastery) update
-        if self.tau_type == TAU_TYPE_IGNORE_PRE:
-            tau = y * alpha
+        tau = y * alpha
+        if self.state_transfer_type == STATE_TRANSFER_TYPE_IGNORE_PRE:
+            new_state = state + tau
+        elif self.state_transfer_type == STATE_TRANSFER_TYPE_PRE_UPPER_BOUNDED:
+            upper_bound = np.average(state[action.preliminary_knowledge_indexes])
+            new_state = (state + tau).clip(max=upper_bound)
         else:
-            # TODO
+            # TODO TAU_TYPE_PRE_FACTORED
             raise NotImplementedError
-        new_state = state + tau
 
         # Reward
-        if self.reward_type == REWARD_TYPE_TAU:
-            reward = np.sum(tau)
+        if self.reward_type == REWARD_TYPE_MASTERY_DIFF:
+            reward = np.sum(new_state - state)
         else:
             raise NotImplementedError
 
