@@ -44,9 +44,23 @@ class Knowledge(BaseModel):
         else:
             return []
 
-class Activity(Space):
+class Activity(BaseModel):
     """
-    A Activity for ITS,
+    Activity is a wrapper class for action vector
+    """
+
+    def __init__(self, activity):
+        self.activity = activity
+
+    def knowledge(self, ks):
+        m = max(self.activity)
+        index = [i for i, j in enumerate(a) if j == m][0]
+        return ks[index]
+
+
+class ActivitySpaceWrapper(Space):
+    """
+    A ActivitySpaceWrapper for ITS,
     It's a 2-D array of knowledges
     """
     def __init__(self, spaces):
@@ -58,7 +72,17 @@ class Activity(Space):
     def contains(self, x):
         return x in self.spaces
 
+
+##-------------------- Help Methods --------------------
 def _generate_groups(level, kg_max=200, group_kg_max=5):
+    """
+    Generate Knowledge Groups
+
+    Args:
+       level (Int): The difficulty of knowledge group
+       kg_max (Int): The maximum of total knowledges
+       group_kg_max (Int): The maximum knowledge number in a knowledge group
+    """
     remain = kg_max
     groups = []
     for i in range(kg_max):
@@ -76,7 +100,6 @@ def generate_knowledges(kg_max=200, group_kg_max=5.):
             gs = [g for g in groups if g.level == group.level - 1]
             group.preliminaries = random.sample(gs, Discrete(len(gs)).sample())
     return reduce(list.__add__, [x.knowledges for x in groups])
-
 
 def generate_activities(ks, ratio):
     noise_sd = 0.05

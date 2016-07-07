@@ -21,21 +21,28 @@ class AdaptiveLearningEnv(gym.Env):
 
     def __init__(self):
         self.knowledges = models.generate_knowledges()
-        self.action_space = models.Activity(models.generate_activities(self.knowledges, self.ratio))
+        self.action_space = models.ActivitySpaceWrapper(models.generate_activities(self.knowledges, self.ratio))
         self.observation_space = Box(0, 1, len(self.knowledges))
         self.reward_range = (0, 1)
         self.simulator = StudentSimulator(self.action_space)
-        self.ob = None
+        self.viewer = None
         self._seed()
         self._reset()
 
+        # Just need to initialize the relevant attributes
+        self._configure()
+
+    def _configure(self, display=None):
+        self.display = display
+
     def _step(self, action):
         assert self.action_space.contains(action)
-        ob, reward, done = self.simulator.progress(self.ob, action)
+        a = models.Activity(action)
+        ob, reward, done = self.simulator.progress(a.knowledge, a)
         return ob, reward, done, {}
 
     def _reset(self):
-        self.ob = Box(0.05, 0.1, len(self.knowledges)).sample()
+        return Box(0.05, 0.1, len(self.knowledges)).sample()
 
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -43,6 +50,14 @@ class AdaptiveLearningEnv(gym.Env):
 
     def _render(self, mode='human', close=False):
         if close:
+            if self.viewwr is not None:
+                self.viewer.close()
+                self.viewer = None
             return
-        # outfile = StringIO() if mode == 'ansi' else sys.stdout
-        pass
+
+        screen_width = 600
+        screen_height = 400
+
+        if self.viewer is None:
+            from gym.envs.classic_control import rendering
+            self.viewer = rendering.Viewer(screen_width, screen_height, display=self.display)
