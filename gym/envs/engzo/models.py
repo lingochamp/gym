@@ -129,22 +129,34 @@ def _generate_knowledges(kg_max=200, group_kg_max=5.):
     return ks
 
 
-def _generate_activities(ks, ratio):
-    ## generate activities
+MAIN_KNOWLEDGE_REQ_LOW = .5
+MAIN_KNOWLEDGE_REQ_HIGH = 1.
+MINOR_KNOWLEDGE_REQ_LOW = 0.
+MINOR_KNOWLEDGE_REQ_HIGH = .5
+
+
+def _generate_activities(ks, num_activity_per_knowledge):
     activities = []
-    for index, k in enumerate(ks):
-        for i in range(ratio):
-            act = np.zeros(len(ks))
-            act[index] += np.random.uniform(0.5, 1.)
-            if act[index] < 0: act[index] = 0.5
-            # TODO fix knowledge pool
-            siblings = k.sibling()
-            np.random.shuffle(siblings)
-            for s in siblings[0:2]:
-                ki = ks.index(s)
-                act[ki] += np.random.uniform(0, 0.5)
-                if act[ki] < 0: act[ki] = 0
-            activities.append(act)
+    K = len(ks)
+
+    # Each activity attaches exactly 1 main knowledge and 0 to 2 minor knowledges
+    for main_knowledge in ks:
+        for i in range(num_activity_per_knowledge):
+            # Set main knowledge
+            act_psi = np.zeros(K)
+            act_psi[main_knowledge._id] += np.random.uniform(MAIN_KNOWLEDGE_REQ_LOW, MAIN_KNOWLEDGE_REQ_HIGH)
+
+            # Set minor knowledge
+            # Choose minor knowledge from knowledge in same level or preliminary level group
+            knowledge_candidates = [k for k in ks if
+                                    k.group.level <= main_knowledge.group.level and k != main_knowledge]
+            num_minor_knowledge = random.randint(0, 2)
+            assert len(knowledge_candidates) >= num_minor_knowledge
+            for k in random.sample(knowledge_candidates, num_minor_knowledge):
+                act_psi[k._id] += np.random.uniform(MINOR_KNOWLEDGE_REQ_LOW, MINOR_KNOWLEDGE_REQ_HIGH)
+
+            activities.append(act_psi)
+
     return np.asarray(activities)
 
 
