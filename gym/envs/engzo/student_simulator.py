@@ -51,7 +51,7 @@ class StudentSimulator:
             new_state = state + tau
         elif self.state_transfer_type == STATE_TRANSFER_TYPE_PRE_UPPER_BOUNDED:
             upper_bound = np.average(state[action.preliminary_knowledge_indexes])
-            new_state = (state + tau).clip(max=upper_bound)
+            new_state = np.maximum((state + tau).clip(max=upper_bound), state)
         else:
             # TODO TAU_TYPE_PRE_FACTORED
             raise NotImplementedError
