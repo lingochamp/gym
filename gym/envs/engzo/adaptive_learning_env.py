@@ -19,13 +19,14 @@ logger = logging.getLogger(__name__)
 
 class AdaptiveLearningEnv(gym.Env):
 
-    metadata = { 'render.modes': ['human', 'ansi'] }
+    metadata = { 'render.modes': ['human', 'rgb_array'] }
 
     def __init__(self, filename='activities.pkl'):
         self.filename = filename
         self.assets_dir = os.path.dirname(os.path.abspath(__file__))
         self.reward_range = (0, 1)
         self.viewer = None
+        self.circle_indexs = []
         self.ob = None
         self._configure()
         self._seed()
@@ -73,7 +74,6 @@ class AdaptiveLearningEnv(gym.Env):
         margin = radius * 2.5
         max_per_line = (screen_width - margin * 2) / margin
         colors = np.array([[78,191,126], [254,178,45], [175,101,194]])/255.
-        ids = []
 
         if self.viewer is None:
             from gym.envs.classic_control import rendering
@@ -81,7 +81,7 @@ class AdaptiveLearningEnv(gym.Env):
 
             for (i, x) in enumerate(sorted(self.knowledges, key=attrgetter('level', 'group'), reverse=True)):
                 h, w = divmod(i, max_per_line)
-                ids.append(x._id)
+                self.circle_indexs.append(x._id)
                 w = screen_width - 20  - w * (margin + 10)
                 h = screen_height - 20 - h * (margin + 10)
                 t = self.viewer.draw_circle(radius)
@@ -91,8 +91,8 @@ class AdaptiveLearningEnv(gym.Env):
                 self.viewer.add_geom(t)
 
         for i, x in enumerate(self.ob):
-            if len(ids) != 0:
-                t = self.viewer.geoms[ids.index(i)]
+            if len(self.circle_indexs) != 0:
+                t = self.viewer.geoms[self.circle_indexs.index(i)]
                 k = self.knowledges[i]
                 r, g, b = colors[k.level() - 1]
                 t.set_color(r, g, b, x)

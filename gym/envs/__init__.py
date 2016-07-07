@@ -477,5 +477,5 @@ register(
     id='EngzoAdaptiveLearning-v0',
     entry_point='gym.envs.engzo:AdaptiveLearningEnv',
     kwargs= {'filename' : 'activities.pkl'},
-    timestep_limit=2000
+    timestep_limit=20000
 )
