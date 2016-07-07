@@ -9,7 +9,7 @@ from gym.spaces import Discrete, Box
 from gym.utils import colorize, seeding
 # from gym.envs.toy_text import discrete
 
-from gym.envs.engzo import models
+from gym.envs.engzo.models import Knowledge, Activity, KnowledgeGroup
 from gym.envs.engzo.student_simulator import StudentSimulator
 
 from six import StringIO
@@ -27,10 +27,9 @@ class AdaptiveLearningEnv(gym.Env):
         self.reward_range = (0, 1)
         self.viewer = None
         self.ob = None
+        self._configure()
         self._seed()
         self._reset()
-        self._configure()
-
 
     def _configure(self, display=None):
         self.display = display
@@ -48,7 +47,7 @@ class AdaptiveLearningEnv(gym.Env):
 
     def _step(self, action):
         assert self.action_space.contains(action)
-        a = models.Activity(self.activities[action])
+        a = Activity(self.activities[action])
         ob, reward, done = self.simulator.progress(self.ob, a)
         self.ob = ob
         return ob, reward, done, {}

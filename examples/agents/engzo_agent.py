@@ -3,7 +3,7 @@ import os, sys
 import numpy as np
 
 import gym
-from gym.envs.engzo import models
+from gym.envs.engzo.models import Knowledge, Activity, KnowledgeGroup
 
 class EngzoAgent(object):
     def __init__(self, action_space):
