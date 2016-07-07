@@ -129,31 +129,30 @@ def _generate_knowledges(kg_max=200, group_kg_max=5.):
     return ks
 
 
-MAIN_KNOWLEDGE_REQ_LOW = .5
-MAIN_KNOWLEDGE_REQ_HIGH = 1.
-MINOR_KNOWLEDGE_REQ_LOW = 0.
-MINOR_KNOWLEDGE_REQ_HIGH = .5
-
-
 def _generate_activities(ks, num_activity_per_knowledge):
     activities = []
     K = len(ks)
 
     # Each activity attaches exactly 1 main knowledge and 0 to 2 minor knowledges
     for main_knowledge in ks:
+        psi_bin_size = 1. / num_activity_per_knowledge
+
         for i in range(num_activity_per_knowledge):
-            # Set main knowledge
             act_psi = np.zeros(K)
-            act_psi[main_knowledge._id] += np.random.uniform(MAIN_KNOWLEDGE_REQ_LOW, MAIN_KNOWLEDGE_REQ_HIGH)
+
+            # Set main knowledge
+            psi_low, psi_high = max(.1, i * psi_bin_size), min(1., (i + 1) * psi_bin_size)
+            act_psi[main_knowledge._id] += np.random.uniform(psi_low, psi_high)
 
             # Set minor knowledge
             # Choose minor knowledge from knowledge in same level or preliminary level group
+            # Random from 0. to main knowledge psi
             knowledge_candidates = [k for k in ks if
                                     k.group.level <= main_knowledge.group.level and k != main_knowledge]
             num_minor_knowledge = random.randint(0, 2)
             assert len(knowledge_candidates) >= num_minor_knowledge
             for k in random.sample(knowledge_candidates, num_minor_knowledge):
-                act_psi[k._id] += np.random.uniform(MINOR_KNOWLEDGE_REQ_LOW, MINOR_KNOWLEDGE_REQ_HIGH)
+                act_psi[k._id] += np.random.uniform(0., act_psi[main_knowledge._id])
 
             activities.append(act_psi)
 
