@@ -79,7 +79,7 @@ class AdaptiveLearningEnv(gym.Env):
             from gym.envs.classic_control import rendering
             self.viewer = rendering.Viewer(screen_width, screen_height)
 
-            for (i, x) in enumerate(sorted(self.knowledges, key=attrgetter('level', 'group'), reverse=True)):
+            for (i, x) in enumerate(sorted(self.knowledges, key=lambda tup:(tup.level(), tup.group), reverse=True)):
                 h, w = divmod(i, max_per_line)
                 self.circle_indexs.append(x._id)
                 w = screen_width - 20  - w * (margin + 10)
