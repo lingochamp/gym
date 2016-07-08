@@ -4,11 +4,13 @@ import numpy as np
 
 import gym
 from gym.envs.engzo.models import Knowledge, Activity, KnowledgeGroup
+from engzo_agent import BaseAgent
 
-class SequenceAgent(object):
-    def __init__(self, sorted_actions):
+class SequenceAgent(BaseAgent):
+    def __init__(self, sorted_actions, max_steps):
         self._sorted_actions = sorted_actions
         self._next_action = 0
+        BaseAgent.__init__(self, max_steps)
 
     def act(self, observation, reward, done):
         current_action = self._sorted_actions[self._next_action]
@@ -16,7 +18,6 @@ class SequenceAgent(object):
         if self._next_action == len(self._sorted_actions):
             self._next_action = 0
         return current_action
-
 
 class SequenceAgent2(object):
     def __init__(self, sorted_actions):
@@ -53,21 +54,23 @@ if __name__ == '__main__':
                         for idx in range(num_action)]
 
     sorted_tuple = [a[0] for a in sorted(activities_tuple, key=lambda tup: (tup[2], tup[1], tup[3]))]
-    agent = SequenceAgent(sorted_tuple)
     episode_count = 100
     max_steps = 1000
     reward = 0
     done = False
+    agent = SequenceAgent(sorted_tuple, max_steps)
 
     for i in range(episode_count):
         ob = env.reset()
         total_reward = 0
+        agent.viewer.geoms = []
+
         for j in range(max_steps):
             # env.render()
             action = agent.act(ob, reward, done)
             ob, reward, done, _ = env.step(action)
             total_reward += reward
-            print j, sum(ob)
+            agent.draw_state(j, sum(ob))
             if done:
                 break
             # Note there's no env.render() here. But the environment still can open window and
