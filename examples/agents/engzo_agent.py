@@ -9,7 +9,8 @@ from gym.envs.classic_control import rendering
 class EngzoAgent(object):
     def __init__(self, action_space, max_steps):
         self.action_space = action_space
-        self.viewer = rendering.Viewer(max_steps * 2, max_steps)
+        m = 200 if max_steps > 200 else max_steps
+        self.viewer = rendering.Viewer(m * 2, m)
 
     def act(self, observation, reward, done):
         return self.action_space.sample()
