@@ -7,7 +7,11 @@ from gym import error
 
 logger = logging.getLogger(__name__)
 # This format is true today, but it's *not* an official spec.
-env_id_re = re.compile(r'^([\w:-]+)-v(\d+)$')
+# [username/](env-name)-v(version)    env-name is group 1, version is group 2
+#
+# 2016-10-31: We're experimentally expanding the environment ID format
+# to include an optional username.
+env_id_re = re.compile(r'^(?:[\w:-]+\/)?([\w:.-]+)-v(\d+)$')
 
 def load(name):
     entry_point = pkg_resources.EntryPoint.parse('x={}'.format(name))
@@ -21,27 +25,31 @@ class EnvSpec(object):
     Args:
         id (str): The official environment ID
         entry_point (Optional[str]): The Python entrypoint of the environment class (e.g. module.name:Class)
-        timestep_limit (int): The max number of timesteps per episode during training
         trials (int): The number of trials to average reward over
         reward_threshold (Optional[int]): The reward threshold before the task is considered solved
         local_only: True iff the environment is to be used only on the local machine (e.g. debugging envs)
         kwargs (dict): The kwargs to pass to the environment class
         nondeterministic (bool): Whether this environment is non-deterministic even after seeding
+        tags (dict[str:any]): A set of arbitrary key-value tags on this environment, including simple property=True tags
 
     Attributes:
         id (str): The official environment ID
-        timestep_limit (int): The max number of timesteps per episode in official evaluation
         trials (int): The number of trials run in official evaluation
     """
 
-    def __init__(self, id, entry_point=None, timestep_limit=1000, trials=100, reward_threshold=None, local_only=False, kwargs=None, nondeterministic=False):
+    def __init__(self, id, entry_point=None, trials=100, reward_threshold=None, local_only=False, kwargs=None, nondeterministic=False, tags=None, timestep_limit=None):
         self.id = id
         # Evaluation parameters
-        self.timestep_limit = timestep_limit
         self.trials = trials
         self.reward_threshold = reward_threshold
         # Environment properties
         self.nondeterministic = nondeterministic
+
+        if tags is None:
+            tags = {}
+        self.tags = tags
+
+        self.timestep_limit = timestep_limit
 
         # We may make some of these other parameters public if they're
         # useful.
@@ -68,6 +76,17 @@ class EnvSpec(object):
     def __repr__(self):
         return "EnvSpec({})".format(self.id)
 
+    @property
+    def timestep_limit(self):
+        logger.warn("DEPRECATION WARNING: env.spec.timestep_limit has been deprecated. Replace your call to `env.spec.timestep_limit` with `env.spec.tags.get('wrapper_config.TimeLimit.max_episode_steps')`. This change was made 12/28/2016 and is included in version 0.7.0")
+        return self.tags.get('wrapper_config.TimeLimit.max_episode_steps')
+
+    @timestep_limit.setter
+    def timestep_limit(self, timestep_limit):
+        if timestep_limit is not None:
+            logger.warn(
+                "DEPRECATION WARNING: env.spec.timestep_limit has been deprecated. Replace any calls to `register(timestep_limit=200)` with `register(tags={'wrapper_config.TimeLimit.max_episode_steps': 200)}`, . This change was made 12/28/2016 and is included in gym version 0.7.0. If you are getting many of these warnings, you may need to update universe past version 0.21.1")
+            self.tags['wrapper_config.TimeLimit.max_episode_steps'] = timestep_limit
 
 class EnvRegistry(object):
     """Register an env by ID. IDs remain stable over time and are
@@ -113,6 +132,12 @@ class EnvRegistry(object):
 
 # Have a global registry
 registry = EnvRegistry()
-register = registry.register
-make = registry.make
-spec = registry.spec
+
+def register(id, **kwargs):
+    return registry.register(id, **kwargs)
+
+def make(id):
+    return registry.make(id)
+
+def spec(id):
+    return registry.spec(id)

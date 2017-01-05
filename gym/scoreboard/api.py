@@ -4,7 +4,7 @@ import os
 import re
 import tarfile
 import tempfile
-from gym import error, monitoring
+from gym import benchmark_spec, error, monitoring
 from gym.scoreboard.client import resource, util
 import numpy as np
 
@@ -15,22 +15,91 @@ logger = logging.getLogger(__name__)
 video_name_re = re.compile('^[\w.-]+\.(mp4|avi|json)$')
 metadata_name_re = re.compile('^[\w.-]+\.meta\.json$')
 
-def upload(training_dir, algorithm_id=None, writeup=None, api_key=None, ignore_open_monitors=False):
+def upload(training_dir, algorithm_id=None, writeup=None, tags=None, benchmark_id=None, api_key=None, ignore_open_monitors=False):
     """Upload the results of training (as automatically recorded by your
     env's monitor) to OpenAI Gym.
 
     Args:
         training_dir (Optional[str]): A directory containing the results of a training run.
-        algorithm_id (Optional[str]): An algorithm id indicating the paricular version of the algorithm (including choices of parameters) you are running (visit https://gym.openai.com/algorithms to create an id)
+        algorithm_id (Optional[str]): An algorithm id indicating the particular version of the algorithm (including choices of parameters) you are running (visit https://gym.openai.com/algorithms to create an id). If the id doesn't match an existing server id it will create a new algorithm using algorithm_id as the name
+        benchmark_id (Optional[str]): The benchmark that these evaluations belong to. Will recursively search through training_dir for any Gym manifests. This feature is currently pre-release.
         writeup (Optional[str]): A Gist URL (of the form https://gist.github.com/<user>/<id>) containing your writeup for this evaluation.
+        tags (Optional[dict]): A dictionary of key/values to store with the benchmark run (ignored for nonbenchmark evaluations). Must be jsonable.
         api_key (Optional[str]): Your OpenAI API key. Can also be provided as an environment variable (OPENAI_GYM_API_KEY).
     """
 
+    if benchmark_id:
+        # We're uploading a benchmark run.
+
+        directories = []
+        env_ids = []
+        for name, _, files in os.walk(training_dir):
+            manifests = monitoring.detect_training_manifests(name, files=files)
+            if manifests:
+                env_info = monitoring.load_env_info_from_manifests(manifests, training_dir)
+                env_ids.append(env_info['env_id'])
+                directories.append(name)
+
+        # Validate against benchmark spec
+        try:
+            spec = benchmark_spec(benchmark_id)
+        except error.UnregisteredBenchmark as e:
+            raise error.Error("Invalid benchmark id: {}. Are you using a benchmark registered in gym/benchmarks/__init__.py?".format(benchmark_id))
+
+        # TODO: verify that the number of trials matches
+        spec_env_ids = [task.env_id for task in spec.tasks for _ in range(task.trials)]
+
+        if not env_ids:
+            raise error.Error("Could not find any evaluations in {}".format(training_dir))
+
+        # This could be more stringent about mixing evaluations
+        if sorted(env_ids) != sorted(spec_env_ids):
+            logger.info("WARNING: Evaluations do not match spec for benchmark {}. In {}, we found evaluations for {}, expected {}".format(benchmark_id, training_dir, sorted(env_ids), sorted(spec_env_ids)))
+
+        benchmark_run = resource.BenchmarkRun.create(benchmark_id=benchmark_id, algorithm_id=algorithm_id, tags=json.dumps(tags))
+        benchmark_run_id = benchmark_run.id
+
+        # Actually do the uploads.
+        for training_dir in directories:
+            # N.B. we don't propagate algorithm_id to Evaluation if we're running as part of a benchmark
+            _upload(training_dir, None, writeup, benchmark_run_id, api_key, ignore_open_monitors)
+
+        logger.info("""
+****************************************************
+You successfully uploaded your benchmark on %s to
+OpenAI Gym! You can find it at:
+
+    %s
+
+****************************************************
+        """.rstrip(), benchmark_id, benchmark_run.web_url())
+
+        return benchmark_run_id
+    else:
+        if tags is not None:
+             logger.warn("Tags will NOT be uploaded for this submission.")
+        # Single evalution upload
+        benchmark_run_id = None
+        evaluation = _upload(training_dir, algorithm_id, writeup, benchmark_run_id, api_key, ignore_open_monitors)
+
+        logger.info("""
+****************************************************
+You successfully uploaded your evaluation on %s to
+OpenAI Gym! You can find it at:
+
+    %s
+
+****************************************************
+        """.rstrip(), evaluation.env, evaluation.web_url())
+
+        return None
+
+def _upload(training_dir, algorithm_id=None, writeup=None, benchmark_run_id=None, api_key=None, ignore_open_monitors=False):
     if not ignore_open_monitors:
         open_monitors = monitoring._open_monitors()
         if len(open_monitors) > 0:
             envs = [m.env.spec.id if m.env.spec else '(unknown)' for m in open_monitors]
-            raise error.Error("Still have an open monitor on {}. You must run 'env.monitor.close()' before uploading.".format(', '.join(envs)))
+            raise error.Error("Still have an open monitor on {}. You must run 'env.close()' before uploading.".format(', '.join(envs)))
 
     env_info, training_episode_batch, training_video = upload_training_data(training_dir, api_key=api_key)
     env_id = env_info['env_id']
@@ -57,22 +126,11 @@ def upload(training_dir, algorithm_id=None, writeup=None, api_key=None, ignore_o
         algorithm={
             'id': algorithm_id,
         },
+        benchmark_run_id=benchmark_run_id,
         writeup=writeup,
         gym_version=env_info['gym_version'],
         api_key=api_key,
     )
-
-    logger.info(
-
-    """
-****************************************************
-You successfully uploaded your evaluation on %s to
-OpenAI Gym! You can find it at:
-
-    %s
-
-****************************************************
-    """.rstrip(), env_id, evaluation.web_url())
 
     return evaluation
 
@@ -86,11 +144,12 @@ def upload_training_data(training_dir, api_key=None):
 
     manifests = results['manifests']
     env_info = results['env_info']
+    data_sources = results['data_sources']
     timestamps = results['timestamps']
     episode_lengths = results['episode_lengths']
     episode_rewards = results['episode_rewards']
-    main_seeds = results['main_seeds']
-    seeds = results['seeds']
+    episode_types = results['episode_types']
+    initial_reset_timestamps = results['initial_reset_timestamps']
     videos = results['videos']
 
     env_id = env_info['env_id']
@@ -98,7 +157,7 @@ def upload_training_data(training_dir, api_key=None):
 
     # Do the relevant uploads
     if len(episode_lengths) > 0:
-        training_episode_batch = upload_training_episode_batch(episode_lengths, episode_rewards, timestamps, main_seeds, seeds, api_key, env_id=env_id)
+        training_episode_batch = upload_training_episode_batch(data_sources, episode_lengths, episode_rewards, episode_types, initial_reset_timestamps, timestamps, api_key, env_id=env_id)
     else:
         training_episode_batch = None
 
@@ -114,15 +173,16 @@ def upload_training_data(training_dir, api_key=None):
 
     return env_info, training_episode_batch, training_video
 
-def upload_training_episode_batch(episode_lengths, episode_rewards, timestamps, main_seeds, seeds, api_key=None, env_id=None):
+def upload_training_episode_batch(data_sources, episode_lengths, episode_rewards, episode_types, initial_reset_timestamps, timestamps, api_key=None, env_id=None):
     logger.info('[%s] Uploading %d episodes of training data', env_id, len(episode_lengths))
     file_upload = resource.FileUpload.create(purpose='episode_batch', api_key=api_key)
     file_upload.put({
+        'data_sources': data_sources,
         'episode_lengths': episode_lengths,
         'episode_rewards': episode_rewards,
+        'episode_types': episode_types,
+        'initial_reset_timestamps': initial_reset_timestamps,
         'timestamps': timestamps,
-        'main_seeds': main_seeds,
-        'seeds': seeds,
     })
     return file_upload
 
